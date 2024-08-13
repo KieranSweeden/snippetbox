@@ -8,28 +8,32 @@ import (
 	"net/http"
 	"os"
 
+	"snippetbox.kieransweeden.dev/internal/models"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
 type application struct {
-	logger *slog.Logger
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
-	addr := flag.String("addr", ":4000", "HTTP network address")
-	flag.Parse()
-
 	err := godotenv.Load("local.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	dsn := os.Getenv("DSN")
+	defaultDsn := os.Getenv("DEFAULT_DSN")
+
+	addr := flag.String("addr", ":4000", "HTTP network address")
+	dsn := flag.String("dsn", defaultDsn, "MySQL data source name")
+	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	db, err := openDB(dsn)
+	db, err := openDB(*dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
@@ -38,7 +42,8 @@ func main() {
 	defer db.Close()
 
 	app := &application{
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	logger.Info("starting server", "addr", *addr)
