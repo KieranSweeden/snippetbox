@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,23 +12,33 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	rr := httptest.NewRecorder()
+	// Create new app instance with structured logger
+	// that discards anything written to it, middlewares depend
+	// on this existing against the app instance so we include it
+	// to avoid causing unrelated panics.
+	app := &application{
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
 
-	r, err := http.NewRequest(http.MethodGet, "/", nil)
+	// Start a new TLS test server, Notice that we defer a call to
+	// ts.Close() so that the server is shutdown when the test finishes.
+	ts := httptest.NewTLSServer(app.routes()) // using all routes so middleware is included too
+	defer ts.Close()
+
+	// The network address that the test server is listening on is contained in
+	// the ts.URL field.
+	// Use this to send a /ping GET request to the TLS test server
+	rs, err := ts.Client().Get(ts.URL + "/ping")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	ping(rr, r)
-
-	rs := rr.Result()
 
 	assert.Equal(t, rs.StatusCode, http.StatusOK)
 
 	defer rs.Body.Close()
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
-		t.Fatal(err) // use Fatal when it doesn't make sense to continue the test
+		t.Fatal(err)
 	}
 	body = bytes.TrimSpace(body)
 
