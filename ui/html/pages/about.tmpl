@@ -1,0 +1,13 @@
+{{define "title"}}About{{end}}
+
+{{define "main"}}
+    <h2>About</h2>
+    <p>Snippet box is an application enabling users to paste and share snippets of text.</p>
+    <p>It's similar to applications like <a href="https://pastebin.com" target="_blank">Pastebin</a> or GitHub's <a href="https://gist.github.com" target="_blank">Gists</a>.</p>
+    <p>All users can view snippets but only authenticated users can create them.</p>
+    {{if .IsAuthenticated}}
+      <p>As a logged in user, you can <a href="/snippet/create">create snippets</a>.</p>
+    {{else}}
+      <p><a href="/user/signup">Sign up</a> to create snippets.</p>
+    {{end}}
+{{end}}
